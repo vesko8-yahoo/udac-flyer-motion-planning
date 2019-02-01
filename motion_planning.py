@@ -115,12 +115,24 @@ class MotionPlanning(Drone):
         self.connection._master.write(data)
 
     #This is from Less02
-    def global_to_local(global_position, global_home):
+    def global_to_local(self, global_position, global_home):
         (east_home, north_home, _, _) = utm.from_latlon(global_home[1], global_home[0])
         (east, north, _, _) = utm.from_latlon(global_position[1], global_position[0])                 
         local_position = np.array([north - north_home, east - east_home, -(global_position[2] - global_home[2])])
     
         return local_position
+
+    def local_to_global(self, local_position, global_home):
+        (east_home, north_home, zone_number, zone_letter) = utm.from_latlon(
+                                                            global_home[1], global_home[0])
+        
+        (lat, lon) = utm.to_latlon(east_home + local_position[1],
+                                north_home + local_position[0], zone_number,
+                                zone_letter)
+                                
+        global_position = np.array([lon, lat, -(local_position[2]-global_home[2])])
+        
+        return global_position
 
     #V
     def point(self, p):
@@ -191,7 +203,7 @@ class MotionPlanning(Drone):
         global_pos = (self.global_position[0], self.global_position[1], self.global_position[2])
         print("GLOBAL_POSITION2: ", global_pos)
         # TODO: DONE convert to current local position using global_to_local()
-        local_pos = global_to_local(global_pos, (self._longitude, self._latitude, 0))
+        local_pos = self.global_to_local(global_pos, (self._longitude, self._latitude, 0))
         print(local_pos) # [ 0.     0.    -0.108]
 
         #V - The below print outputs this if you run it fresh. Note 3.7e+01=37; 1.22e+02=122

@@ -1,5 +1,4 @@
 ## Project: 3D Motion Planning
-![Quad Image](./misc/enroute.png)
 
 ---
 
@@ -27,46 +26,33 @@ You're reading it! Below I describe how I addressed each rubric point and where 
 ### Explain the Starter Code
 
 #### 1. Explain the functionality of what's provided in `motion_planning.py` and `planning_utils.py`
-These scripts contain a basic planning implementation that includes...
-
-And here's a lovely image of my results (ok this image has nothing to do with it, but it's a nice example of how to include images in your writeup!)
-![Top Down View](./misc/high_up.png)
-
-Here's | A | Snappy | Table
---- | --- | --- | ---
-1 | `highlight` | **bold** | 7.41
-2 | a | b | c
-3 | *italic* | text | 403
-4 | 2 | 3 | abcd
+These scripts contain a basic planning implementation that includes creating a grid map and using this grid map to plan.
+As part of this they read collider.csv which contains the obstacles and that is included in their grid map.
+They start at the middle of the map and the destination is 10 diagonal grid cells away. Since planning_utils.py
+only allows for non-diagonal movementsit the path is not a straight line.
 
 ### Implementing Your Path Planning Algorithm
 
 #### 1. Set your global home position
-Here students should read the first line of the csv file, extract lat0 and lon0 as floating point values and use the self.set_home_position() method to set global home. Explain briefly how you accomplished this in your code.
 
-
-And here is a lovely picture of our downtown San Francisco environment from above!
-![Map of SF](./misc/map.png)
+I am using python to read the first line of the file and then I parse out the lat0 and lon0 values, and pass
+them to self.set_home_position().
 
 #### 2. Set your current local position
-Here as long as you successfully determine your local position relative to global home you'll be all set. Explain briefly how you accomplished this in your code.
-
-
-Meanwhile, here's a picture of me flying through the trees!
-![Forest Flying](./misc/in_the_trees.png)
+I use a function: global_to_local() in which I use the utm library to convert from global to local frame.
 
 #### 3. Set grid start position from local position
 This is another step in adding flexibility to the start location. As long as it works you're good to go!
 
 #### 4. Set grid goal position from geodetic coords
 This step is to add flexibility to the desired goal location. Should be able to choose any (lat, lon) within the map and have it rendered to a goal location on the grid.
+You can do this by using the function `def local_to_global(self, local_position, global_home)` which I added.
 
 #### 5. Modify A* to include diagonal motion (or replace A* altogether)
-Minimal requirement here is to modify the code in planning_utils() to update the A* implementation to include diagonal motions on the grid that have a cost of sqrt(2), but more creative solutions are welcome. Explain the code you used to accomplish this step.
+I have modified the code in planning_utils() to update the A* implementation to include diagonal motions on the grid that have a cost of sqrt(2). I modified the Action class to add additional allowable actions. Also had to modfify the `valid_actions` method to account for the new actions.
 
 #### 6. Cull waypoints 
-For this step you can use a collinearity test or ray tracing method like Bresenham. The idea is simply to prune your path of unnecessary waypoints. Explain the code you used to accomplish this step.
-
+I use a collinearity test to prune waypoints. Implemented the following function: `prune_path(self, path)`. It looks at every 3 consecutive points on the path, and if they are colinear removes the middle point from the path. For the collinearity see the `collinearity_check` function. It uses  a trick from linear algebra, where it arranges the 3 points as rows of a 3 by 3 matrix with the last column of the matrix set to all 1s. If the determinant of that matrix is 0 then the 3 points are colinear.
 
 
 ### Execute the flight
