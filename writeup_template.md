@@ -42,11 +42,10 @@ them to self.set_home_position().
 I use a function: global_to_local() in which I use the utm library to convert from global to local frame.
 
 #### 3. Set grid start position from local position
-This is another step in adding flexibility to the start location. As long as it works you're good to go!
+I use the global_to_local() method to input our lat and long and get the local starting position.
 
 #### 4. Set grid goal position from geodetic coords
-This step is to add flexibility to the desired goal location. Should be able to choose any (lat, lon) within the map and have it rendered to a goal location on the grid.
-You can do this by using the function `def local_to_global(self, local_position, global_home)` which I added.
+I have the lat and longitude of the destination, and I use global_to_local() to convert them to local destination position.
 
 #### 5. Modify A* to include diagonal motion (or replace A* altogether)
 I have modified the code in planning_utils() to update the A* implementation to include diagonal motions on the grid that have a cost of sqrt(2). I modified the Action class to add additional allowable actions. Also had to modfify the `valid_actions` method to account for the new actions.

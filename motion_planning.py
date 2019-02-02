@@ -172,11 +172,20 @@ class MotionPlanning(Drone):
                 i += 1
         return pruned_path
 
+    def find_start_goal(self, skel, start, goal):
+        skel_cells = np.transpose(skel.nonzero())
+        start_min_dist = np.linalg.norm(np.array(start) - np.array(skel_cells), axis=1).argmin()
+        near_start = skel_cells[start_min_dist]
+        goal_min_dist = np.linalg.norm(np.array(goal) - np.array(skel_cells), axis=1).argmin()
+        near_goal = skel_cells[goal_min_dist]
+        
+        return near_start, near_goal
+
     def plan_path(self):
         self.flight_state = States.PLANNING
         print("Searching for a path ...")
         TARGET_ALTITUDE = 5
-        SAFETY_DISTANCE = 5
+        SAFETY_DISTANCE = 6
 
         self.target_position[2] = TARGET_ALTITUDE
 
@@ -225,28 +234,43 @@ class MotionPlanning(Drone):
         print("North offset = {0}, east offset = {1}".format(north_offset, east_offset))
         # Define starting point on the grid (this is just grid center)
         grid_start = (-north_offset, -east_offset)
+        #V the reason this works is because your local NED position is (0,0,0) but your grid starts from 0.
+        #V So to convert from NED to Grid you just need to offset by north_min and east_min (which are negative).
         print("GRID_START", grid_start)
         #V Less03 - 04 Uses medial axis transfrom (still a grid) which is much safer than 03
-        # TODO: convert start position to current position rather than map center
+        # TODO: DONE convert start position to current position rather than map center
 
         # Set goal as some arbitrary position on the grid
-        grid_goal = (-north_offset + 10, -east_offset + 10)
-        # TODO: adapt to set goal as latitude / longitude position and convert
+        #Vgrid_goal = (-north_offset + 10, -east_offset + 10)
+        # TODO: DONE adapt to set goal as latitude / longitude position and convert
 
-        #V Instead of using grid we can use medial axis  - lets call it skeleton
-        #skeleton = medial_axis(invert(grid))
         
+        goal_llh = (-122.39733567,   37.79256955, 0)
+        #goal_llh = self.local_to_global((10,10,0), self.global_home)
+        print("goal_llh: ", goal_llh)
+        goal_in_local = self.global_to_local(goal_llh, self.global_home)
+        grid_goal = (int(goal_in_local[0] - north_offset), int(goal_in_local[1] - east_offset))
+        #V Instead of using grid we can use medial axis  - lets call it skeleton
+        skeleton = medial_axis(invert(grid))
+        skel_start, skel_goal = self.find_start_goal(skeleton, 
+                        (self.local_position[0], self.local_position[1]), #current position in local (NED)
+                        (goal_in_local[0], goal_in_local[1]))
+        print('Skel Start and Goal: ', skel_start, skel_goal)
+
         # Run A* to find a path from start to goal
         # TODO: DONE add diagonal motions with a cost of sqrt(2) to your A* implementation
         # or move to a different search space such as a graph (not done here)
         print('Local Start and Goal: ', grid_start, grid_goal)
         path, _ = a_star(grid, heuristic, grid_start, grid_goal)
+        #V Get an error here because skel_start, skel_goal are the same - somethings is wrong
+        #path, _ = a_star(invert(skeleton).astype(np.int), heuristic, tuple(skel_start), tuple(skel_goal))
         # TODO: DONE prune path to minimize number of waypoints
         path = self.prune_path(path)
         print(path)
         # TODO (if you're feeling ambitious): Try a different approach altogether!
 
         # Convert path to waypoints
+        #V: Note we add the offsets (north_min and east_min which are negative) to our path points
         waypoints = [[p[0] + north_offset, p[1] + east_offset, TARGET_ALTITUDE, 0] for p in path]
         # Set self.waypoints
         self.waypoints = waypoints
